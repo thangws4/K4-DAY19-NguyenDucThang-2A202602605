@@ -1,0 +1,118 @@
+## Q-A
+MATCH (n) RETURN labels(n)[0] AS label, count(*) AS n ORDER BY n DESC
+   {'label': 'Clause', 'n': 99}
+   {'label': 'Person', 'n': 40}
+   {'label': 'Article', 'n': 18}
+   {'label': 'Crime', 'n': 13}
+   {'label': 'Case', 'n': 12}
+   {'label': 'Substance', 'n': 11}
+   {'label': 'Location', 'n': 4}
+## rels
+MATCH ()-[r]->() RETURN type(r) AS rel, count(*) AS n ORDER BY n DESC
+   {'rel': 'THRESHOLD', 'n': 222}
+   {'rel': 'MENTIONS', 'n': 169}
+   {'rel': 'HAS_CLAUSE', 'n': 99}
+   {'rel': 'INVOLVED_IN', 'n': 48}
+   {'rel': 'INVOLVES', 'n': 22}
+   {'rel': 'CHARGED_WITH', 'n': 15}
+   {'rel': 'DEFINES', 'n': 13}
+   {'rel': 'LOCATED_IN', 'n': 12}
+## E1
+MATCH (k:Case) WHERE NOT (k)-[:CHARGED_WITH]->() RETURN k.name, k.doc_id
+   {'k.name': 'Vụ vận chuyển vũ khí và hơn 800kg chất nghi ma túy tại Preah Sihanouk, Campuchia', 'k.doc_id': 'news-100260924145818945'}
+   {'k.name': 'Vụ tông cảnh sát giao thông tại An Giang', 'k.doc_id': 'news-100260926112415229'}
+   {'k.name': 'Vụ phát hiện bao tải chứa 20kg nghi ma túy trôi dạt bờ biển Phú Quốc', 'k.doc_id': 'news-100260927182621527'}
+## E3-case-per-doc
+MATCH (k:Case) RETURN k.doc_id AS doc, count(*) AS cases ORDER BY cases DESC LIMIT 3
+   {'doc': 'news-100260918080821054', 'cases': 1}
+   {'doc': 'news-100260920221957595', 'cases': 1}
+   {'doc': 'news-100260917203001265', 'cases': 1}
+## E3-subst
+MATCH (s:Substance) OPTIONAL MATCH (k:Case)-[:INVOLVES]->(s) RETURN s.name AS name, count(k) AS cases ORDER BY toLower(name)
+   {'name': 'Amphetamine', 'cases': 0}
+   {'name': 'Cocaine', 'cases': 0}
+   {'name': 'côca', 'cases': 0}
+   {'name': 'cần sa', 'cases': 2}
+   {'name': 'Etomidate', 'cases': 4}
+   {'name': 'Heroine', 'cases': 0}
+   {'name': 'Ketamine', 'cases': 5}
+   {'name': 'MDMA', 'cases': 5}
+   {'name': 'Methamphetamine', 'cases': 6}
+   {'name': 'thuốc phiện', 'cases': 0}
+   {'name': 'XLR-11', 'cases': 0}
+## E3-person-hoang
+MATCH (p:Person) WHERE "Hoàng Nato" IN p.aliases RETURN p.name, p.aliases, COUNT { (p)-[:INVOLVED_IN]->() } AS cases
+   {'p.name': 'Dương Minh Tuấn', 'p.aliases': ['Hoàng Nato'], 'cases': 4}
+## E5-Q6
+MATCH (s:Substance {name:"MDMA"})<-[i:INVOLVES]-(k:Case) RETURN k.name, k.doc_id, i.amount ORDER BY k.doc_id
+   {'k.name': 'Vụ vận chuyển hơn 10kg ma túy từ Đức về Việt Nam qua sân bay Nội Bài', 'k.doc_id': 'news-100260917203001265', 'i.amount': 'hơn 9,6kg'}
+   {'k.name': 'Vụ mua bán ma túy liên quan đến 3 thanh niên kháng cáo tại Hà Nội', 'k.doc_id': 'news-100260918080821054', 'i.amount': '5 viên'}
+   {'k.name': "Vụ bắt giang hồ 'Hoàng Nato' và 126 người liên quan 8 đường dây ma túy tại TP.HCM", 'k.doc_id': 'news-100260920221957595', 'i.amount': ''}
+   {'k.name': 'Vụ sai phạm tại Viện Pháp y tâm thần Trung ương và tiệc ma túy ở Sầm Sơn', 'k.doc_id': 'news-100260924105118645', 'i.amount': ''}
+   {'k.name': 'Vụ án xảy ra tại Viện Pháp y tâm thần Trung ương', 'k.doc_id': 'news-100260930085028036', 'i.amount': '0,686g'}
+## E5-meth
+MATCH (k:Case)-[i:INVOLVES]->(s:Substance {name:"Methamphetamine"}) RETURN k.doc_id, i.amount, i.grams
+   {'k.doc_id': 'news-100260930085028036', 'i.amount': '', 'i.grams': None}
+   {'k.doc_id': 'news-100260927182621527', 'i.amount': 'khoảng 20kg', 'i.grams': 20000.0}
+   {'k.doc_id': 'news-100260924145818945', 'i.amount': 'khoảng 840kg', 'i.grams': 840000.0}
+   {'k.doc_id': 'news-100260924105118645', 'i.amount': '', 'i.grams': None}
+   {'k.doc_id': 'news-100260922111804786', 'i.amount': 'khoảng 100g', 'i.grams': 100.0}
+   {'k.doc_id': 'news-100260920221957595', 'i.amount': 'khoảng 100g', 'i.grams': 100.0}
+## E6-count
+MATCH (p:Person)-[r:INVOLVED_IN]->(k) RETURN r.charge = "" AS empty_charge, r.role AS role, count(*) AS n ORDER BY role
+   {'empty_charge': True, 'role': 'bị can', 'n': 2}
+   {'empty_charge': False, 'role': 'bị can', 'n': 1}
+   {'empty_charge': False, 'role': 'bị cáo', 'n': 13}
+   {'empty_charge': True, 'role': 'bị cáo', 'n': 7}
+   {'empty_charge': True, 'role': 'cán bộ', 'n': 3}
+   {'empty_charge': False, 'role': 'nghi phạm', 'n': 14}
+   {'empty_charge': True, 'role': 'nghi phạm', 'n': 4}
+   {'empty_charge': True, 'role': 'người liên quan', 'n': 4}
+## E6-examples
+MATCH (p:Person)-[r:INVOLVED_IN]->(k) WHERE r.charge = "" AND r.role IN ["bị cáo","bị can","nghi phạm"] RETURN p.name, r.role, k.doc_id LIMIT 12
+   {'p.name': 'Nguyễn Thị Mai Anh', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260930085028036'}
+   {'p.name': 'Nguyễn Thị Mai Anh', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Lê Văn Đông', 'r.role': 'bị can', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Ngô Văn Vinh', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Trần Văn Trường', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Lê Văn Thưởng', 'r.role': 'nghi phạm', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Dương Văn Lương', 'r.role': 'nghi phạm', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Dương Văn Biết', 'r.role': 'nghi phạm', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Trần Quốc An', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260930085028036'}
+   {'p.name': 'Nguyễn Thị Thu Hoài', 'r.role': 'bị cáo', 'k.doc_id': 'news-100260924105118645'}
+   {'p.name': 'Nguyễn Minh Nhân', 'r.role': 'bị can', 'k.doc_id': 'news-100260926112415229'}
+   {'p.name': 'Anh Hai', 'r.role': 'nghi phạm', 'k.doc_id': 'news-100260928173914514'}
+## stage
+MATCH (k:Case) RETURN k.stage AS stage, count(*) AS n ORDER BY n DESC
+   {'stage': 'bắt giữ', 'n': 5}
+   {'stage': 'xét xử sơ thẩm', 'n': 3}
+   {'stage': 'truy tố', 'n': 1}
+   {'stage': 'xét xử phúc thẩm', 'n': 1}
+   {'stage': 'khởi tố', 'n': 1}
+   {'stage': 'khác', 'n': 1}
+## dates
+MATCH (k:Case) RETURN k.doc_id, k.date ORDER BY k.doc_id
+   {'k.doc_id': 'news-100260917203001265', 'k.date': '2025-09-29'}
+   {'k.doc_id': 'news-100260918080821054', 'k.date': '2025-09-18'}
+   {'k.doc_id': 'news-100260920221957595', 'k.date': '2024-09-21'}
+   {'k.doc_id': 'news-100260922111804786', 'k.date': '2024-09-22'}
+   {'k.doc_id': 'news-100260924095400982', 'k.date': '2024-09-24'}
+   {'k.doc_id': 'news-100260924105118645', 'k.date': '2025-09-28'}
+   {'k.doc_id': 'news-100260924145818945', 'k.date': '2023-09-23'}
+   {'k.doc_id': 'news-100260925144412498', 'k.date': '2024-09-19'}
+   {'k.doc_id': 'news-100260926112415229', 'k.date': '2024-09-26'}
+   {'k.doc_id': 'news-100260927182621527', 'k.date': '2025-09-27'}
+   {'k.doc_id': 'news-100260928173914514', 'k.date': '2025-09-28'}
+   {'k.doc_id': 'news-100260930085028036', 'k.date': '2025-09-30'}
+## Q5-own
+MATCH (:Person {key:"cái quang huy"})-[:INVOLVED_IN]->(k:Case)-[:CHARGED_WITH]->(:Crime)<-[:DEFINES]-(a:Article)-[:HAS_CLAUSE]->(cl:Clause)-[t:THRESHOLD]->(s:Substance)<-[i:INVOLVES]-(k)
+WHERE i.grams >= t.min_g AND (t.max_g IS NULL OR i.grams < t.max_g) RETURN a.id, cl.number, t.point, s.name, i.amount, cl.penalty
+   {'a.id': 'Điều 250 BLHS', 'cl.number': 4, 't.point': 'b', 's.name': 'MDMA', 'i.amount': 'hơn 9,6kg', 'cl.penalty': 'phạt tù 20 năm, tù chung thân hoặc tử hình'}
+## my-case
+MATCH p=(:Person {key:"trần thanh tuấn"})-[:INVOLVED_IN]->(k:Case)-[:CHARGED_WITH]->(:Crime)<-[:DEFINES]-(a:Article) RETURN k.name, a.id
+   {'k.name': 'Vụ mua bán hơn 36kg ma túy tại TP.HCM', 'a.id': 'Điều 251 BLHS'}
+   {'k.name': 'Vụ mua bán hơn 36kg ma túy tại TP.HCM', 'a.id': 'Điều 255 BLHS'}
+MATCH (k:Case {doc_id:"news-100260920221957595"})-[:CHARGED_WITH]->(:Crime)<-[:DEFINES]-(a:Article)-[:HAS_CLAUSE]->(cl:Clause)-[t:THRESHOLD]->(s:Substance)<-[i:INVOLVES]-(k)
+WHERE i.grams >= t.min_g AND (t.max_g IS NULL OR i.grams < t.max_g) RETURN a.id, cl.number, t.point, s.name, i.amount, cl.penalty
+   {'a.id': 'Điều 251 BLHS', 'cl.number': 4, 't.point': 'b', 's.name': 'Methamphetamine', 'i.amount': 'khoảng 100g', 'cl.penalty': 'phạt tù 20 năm, tù chung thân hoặc tử hình'}
+   {'a.id': 'Điều 249 BLHS', 'cl.number': 4, 't.point': 'b', 's.name': 'Methamphetamine', 'i.amount': 'khoảng 100g', 'cl.penalty': 'phạt tù từ 15 năm đến 20 năm hoặc tù chung thân'}

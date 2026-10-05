@@ -89,7 +89,10 @@ def _openai_client(provider: str):
     from openai import OpenAI
 
     cfg = PROVIDERS[provider]
-    return OpenAI(api_key=os.environ[cfg["key"]], base_url=cfg["base_url"])
+    # Free tiers (e.g. Gemini: 15 requests/min) answer 429; the SDK backs off exponentially (capped at 8s per wait),
+    # so ~10 retries ride out a one-minute quota window instead of crashing the run.
+    return OpenAI(api_key=os.environ[cfg["key"]], base_url=cfg["base_url"],
+                  max_retries=int(os.getenv("LLM_MAX_RETRIES", "10")))
 
 class MeteredLLM:
     """`chat` and `embed` are drop-in `llm_fn` / `embedding_fn`; `usage` accumulates across calls."""
